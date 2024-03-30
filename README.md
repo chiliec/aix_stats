@@ -20,7 +20,8 @@ Requirements:
 
 Example Report Format:
 
-Daily $AIX Stats: 
+```
+Daily $AIX Stats:
     - First TX: 23h50m ago
     - Last TX: 1h30m ago
     - AIX processed: 2,068,102.33
@@ -30,3 +31,4 @@ Daily $AIX Stats:
 
     Distributor wallet: 0x9A0A9594Aa626EE911207DC001f535c9eb590b34
     Distributor balance: 2.5 ETH
+```
