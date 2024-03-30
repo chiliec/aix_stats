@@ -61,7 +61,7 @@ def format_token_value(value: int, decimal_places=2, unit="ether"):
 
 
 async def generate_report():
-    print("generate report started")
+    print("Generate report started")
 
     # Get the block number of 24 hours ago
     block_number_24h_ago = (
@@ -131,15 +131,69 @@ async def generate_report():
     # Send report to Telegram
     await send_telegram_message(report)
 
+    # Save report date to PostgreSQL
+    cur.execute(
+        """INSERT INTO report_info (report_date,first_tx_time,last_tx_time,aix_input,
+            aix_distributed,eth_swapped,eth_distributed,distributor,distributor_balance) 
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+        (
+            datetime.now(),
+            first_tx_timestamp,
+            last_tx_timestamp,
+            aix_input,
+            aix_distributed,
+            eth_swapped,
+            eth_distributed,
+            distributor,
+            distributor_balance,
+        ),
     )
+    conn.commit()
 
 
+def fetch_last_report_date() -> datetime:
+    # Fetch the date of the last report from PostgreSQL
+    cur.execute("SELECT report_date FROM report_info ORDER BY id DESC LIMIT 1")
+    try:
+        last_report_date = cur.fetchone()[0]
+    except:
+        # fallback to epoch
+        last_report_date = datetime.fromtimestamp(0)
+    return last_report_date
 
 
 async def main():
+    # Define the table schema
+    create_table_query = """
+        CREATE TABLE IF NOT EXISTS report_info (
+            id SERIAL PRIMARY KEY,
+            report_date TIMESTAMP NOT NULL,
+            first_tx_time NUMERIC NOT NULL,
+            last_tx_time NUMERIC NOT NULL,
+            aix_input NUMERIC NOT NULL,
+            aix_distributed NUMERIC NOT NULL,
+            eth_swapped NUMERIC NOT NULL,
+            eth_distributed NUMERIC NOT NULL,
+            distributor VARCHAR(42) NOT NULL,
+            distributor_balance NUMERIC NOT NULL
+        )
+    """
+    # Execute the query to create the table
+    cur.execute(create_table_query)
+    # Commit the transaction
+    conn.commit()
+    # Report every n seconds
+    report_every = timedelta(seconds=int(env_vars["INTERVAL_SECONDS"]))
+    # Fetch the date of the last report when the script starts
+    last_report_date = fetch_last_report_date()
+    next_report_date = last_report_date + report_every
+    if datetime.now() < next_report_date:
+        wait = (next_report_date - datetime.now()).total_seconds()
+        print("Wait {} seconds before next report".format(wait))
+        await asyncio.sleep(wait)
     while True:
         await generate_report()
-        # Wait for 4 hours before sending the next message
+        # Waiting before sending the next message
         await asyncio.sleep(report_every.total_seconds())
 
 
