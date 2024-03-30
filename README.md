@@ -1,4 +1,4 @@
-# $AIX distibution stats
+# $AIX distribution stats
 
 Develop a Telegram bot that monitors our reward distribution process and sends daily statistics to our group.
 
